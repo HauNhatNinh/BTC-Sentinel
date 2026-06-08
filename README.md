@@ -172,7 +172,292 @@ docker compose up -d
 ```
 
 # PHẦN 2: THỰC HÀNH ÁP DỤNG - APP MONITOR & ALERT DATA REALTIME
+## YÊU CẦU HỆ THỐNG MONITOR & ALERT DATA REALTIME BẰNG DOCKER COMPOSE
 
+## Mô tả hệ thống
+
+Sử dụng Docker Compose có nhiều service và các thành phần cần thiết để tạo thành một ứng dụng giám sát dữ liệu thời gian thực.
+
+### 1. Node-RED thu thập dữ liệu
+
+- Node-RED liên tục lấy dữ liệu từ một nguồn thực tế trên Internet.
+- Dữ liệu phải luôn thay đổi theo thời gian ngắn.
+- Có thể sử dụng một trong các nguồn:
+  - Giá Bitcoin (Binance API)
+  - Giá vàng
+  - Thời tiết
+  - Chứng khoán
+  - Tỷ giá ngoại tệ
+  - Các nguồn dữ liệu realtime khác
+
+---
+
+### 2. Lưu trữ dữ liệu
+
+Node-RED sẽ lưu dữ liệu vào đồng thời 2 cơ sở dữ liệu:
+
+#### MariaDB
+
+- Lưu giá trị tức thời (Current Value).
+- Chỉ lưu giá trị mới nhất để phục vụ hiển thị realtime.
+
+Ví dụ:
+
+| id | value | timestamp |
+|----|--------|------------|
+| 1 | 104523.45 | 2026-06-08 14:00:00 |
+
+#### InfluxDB
+
+- Lưu toàn bộ lịch sử dữ liệu.
+- Phục vụ việc thống kê và vẽ biểu đồ theo thời gian.
+
+---
+
+### 3. Grafana trực quan hóa dữ liệu
+
+Sử dụng Grafana để:
+
+- Kết nối tới InfluxDB.
+- Đọc dữ liệu lịch sử.
+- Vẽ biểu đồ theo thời gian thực.
+- Quan sát xu hướng tăng giảm của dữ liệu.
+
+Ví dụ:
+
+- Biểu đồ giá Bitcoin theo thời gian.
+- Biểu đồ nhiệt độ theo thời gian.
+- Biểu đồ giá vàng theo thời gian.
+
+---
+
+### 4. Nginx làm Web Server
+
+Sử dụng Nginx để chạy website Front-end.
+
+Website gồm:
+
+- HTML
+- CSS
+- JavaScript
+
+---
+
+### 5. Flask API
+
+Tự xây dựng API bằng Flask.
+
+Nhiệm vụ:
+
+- Kết nối MariaDB.
+- Đọc giá trị hiện tại.
+- Trả dữ liệu dưới dạng JSON.
+
+Ví dụ:
+
+```json
+{
+    "status": "success",
+    "value": 104523.45,
+    "timestamp": "2026-06-08 14:00:00"
+}
+```
+
+---
+
+### 6. Front-end Realtime
+
+JavaScript trên trang web thực hiện:
+
+- Gọi API Flask bằng AJAX (Fetch API).
+- Hoặc sử dụng WebSocket.
+
+Chức năng:
+
+- Tự động lấy dữ liệu mới định kỳ.
+- Hiển thị dữ liệu realtime lên giao diện.
+- Tự cập nhật khi dữ liệu thay đổi.
+
+Ví dụ:
+
+```javascript
+setInterval(getData, 2000);
+```
+
+Giao diện hiển thị:
+
+```text
+Giá Bitcoin hiện tại
+
+104,523.45 USD
+
+Cập nhật lúc:
+14:00:00
+```
+
+---
+
+### 7. Nhúng biểu đồ Grafana
+
+Trang Web sử dụng iframe để hiển thị Dashboard Grafana.
+
+Ví dụ:
+
+```html
+<iframe
+    src="http://IP_SERVER:3000/d/..."
+    width="100%"
+    height="500">
+</iframe>
+```
+
+Mục đích:
+
+- Hiển thị biểu đồ dữ liệu lịch sử trực tiếp trên Website.
+- Người dùng không cần truy cập Grafana riêng.
+
+---
+
+### 8. Phát hiện dữ liệu bất thường
+
+Thiết lập khoảng giá trị an toàn:
+
+```text
+A ≤ Value ≤ B
+```
+
+Quy tắc:
+
+| Điều kiện | Trạng thái |
+|------------|------------|
+| Value < A | ALERT LOW |
+| A ≤ Value ≤ B | OK |
+| Value > B | ALERT HIGH |
+
+Ví dụ:
+
+```text
+A = 60000
+B = 65000
+```
+
+Kết quả:
+
+```text
+55,000 → ALERT LOW
+
+62,000 → OK
+
+70,000 → ALERT HIGH
+```
+
+---
+
+### 9. Telegram Bot Alert
+
+Node-RED tích hợp Telegram Bot.
+
+#### Yêu cầu
+
+- Tạo Telegram Bot bằng BotFather.
+- Thêm Bot vào Group Telegram.
+
+Nhóm gồm:
+
+- Thành viên 1
+- Thành viên 2
+- ID Telegram: vd: -1875746636 
+
+Tổng cộng:
+
+```text
+3 thành viên
+```
+
+---
+
+### 10. Gửi cảnh báo tự động
+
+Khi dữ liệu nằm ngoài khoảng cho phép:
+
+```text
+Value < A
+```
+
+hoặc
+
+```text
+Value > B
+```
+
+Node-RED sẽ gửi tin nhắn vào Group Telegram.
+
+---
+
+### Nội dung tin nhắn Alert
+
+#### ALERT LOW
+
+```text
+⚠️ ALERT LOW
+
+Giá trị hiện tại: 58,432.11
+
+Ngưỡng tối thiểu: 60,000
+
+Thời gian:
+2026-06-08 14:05:30
+```
+
+#### ALERT HIGH
+
+```text
+🚨 ALERT HIGH
+
+Giá trị hiện tại: 68,912.45
+
+Ngưỡng tối đa: 65,000
+
+Thời gian:
+2026-06-08 14:08:10
+```
+
+Yêu cầu:
+
+- Nội dung cảnh báo phải tường minh.
+- Hiển thị rõ giá trị gây cảnh báo.
+- Mọi thành viên trong Group Telegram đều nhận được tin nhắn.
+
+---
+
+## Kiến trúc hệ thống
+
+```text
+                    Internet
+                        │
+                        ▼
+                 Nguồn dữ liệu
+           (Binance, Weather API...)
+                        │
+                        ▼
+                   Node-RED
+                        │
+        ┌───────────────┼───────────────┐
+        │               │               │
+        ▼               ▼               ▼
+    MariaDB         InfluxDB       Telegram Bot
+ (Current Data)  (Historical Data)   (Alert)
+        │               │
+        ▼               ▼
+      Flask         Grafana
+        │               │
+        └───────┬───────┘
+                ▼
+              Nginx
+                │
+                ▼
+        HTML + CSS + JS
+```
 Với hệ thống này, sẽ lấy dữ liệu giá tiền ảo **Bitcoin (BTC)** qua API công khai của Binance:
 
 ```text
