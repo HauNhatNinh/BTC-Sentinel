@@ -183,7 +183,7 @@ Dữ liệu này nhảy liên tục từng giây, cực kỳ phù hợp để te
 
 # BƯỚC 0: TẠO KHÔNG GIAN LÀM VIỆC ĐỘC LẬP
 
-Chúng ta sẽ tạo một thư mục hoàn toàn mới, tách biệt với bài cũ.
+Chúng ta sẽ tạo một thư mục hoàn toàn mới, tách biệt với dự án cũ (nếu có).
 
 Gõ lần lượt 3 lệnh này:
 
